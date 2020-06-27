@@ -1,0 +1,153 @@
+---
+title: "Week 24 Af-American Firsts"
+author: "Alonso Cordova"
+date: "6/13/2020"
+output: pdf_document
+---
+
+Purpose
+To plot data from Tidyverse challenge 
+Decided to compare n by gender for different categories
+
+
+
+
+### Packages:
+These are the package I plan on using
+
+library(tidyverse) # for data manipulation
+library(stringi)   # for string wrapping
+library(cowplot)   # for plotting multiple plots within a space
+library(officer)   # for exporting into office formats
+
+Loading Packages
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+library(tidyverse)
+library(stringi)
+library(cowplot)
+library(officer)
+
+```
+
+
+
+Calling Tidyverse Week 24 African-American data
+# 1. Clean Data 
+```{r}
+
+#write_csv(firsts, "firsts.csv")
+firsts <- read_csv("firsts.csv")
+
+# 1. Clean Data
+df <- firsts %>% group_by(gender,category) %>% summarise(cat_cnt = n()) %>% ungroup
+df <- df %>% mutate(gender = case_when(gender == 'Female African American Firsts' ~ 'Female',
+                                       gender == 'African-American Firsts' ~ 'Male',
+                                       TRUE ~ ''))
+
+# 2. Create n values that will be used in plot
+n_female <- 107
+n_male   <- 372
+n_recs   <- n_male + n_female
+
+# Note: prior code using subset
+# n_female <- sum(subset(df, gender == "Female")$cat_cnt)
+# n_male   <- sum(subset(df, gender == "Male")$cat_cnt)
+# n_recs   <- n_male + n_female
+
+# need to convert the plot category numbner values into character formats, adds commas
+n_female <- format(n_female, big.mark = ',')              # Note: Smart way of fixing number formatting             
+n_male   <- format(n_male, big.mark = ',')
+n_recs   <- format(n_recs, big.mark = ',')
+
+
+
+# setting max of the y to make sure we have space for text counts and averages
+n_max_y <- max(df$cat_cnt)
+```
+
+
+
+
+
+
+
+Arrange factors for plotting
+# 1. Using Forcats functions
+# 2. Add values that will be looped
+```{r}
+
+# 1. Using Forcats functions
+df$category <- factor(df$category) %>%
+  fct_infreq() #%>%
+# fct_rev()
+
+df <- arrange(df, gender, category)
+df$category <- factor(df$category) %>% 
+  fct_rev()
+
+# 2. Add values that will be looped
+nbr <-1
+vec_pg <- 1   # this is only relevant if we have more categories than we can fit in a page
+
+# the greens for color blind
+vec_color <- c("#56B4E9", "#0072B2")
+
+```
+
+
+
+
+Create category comparison plot
+```{r plot, echo=FALSE}
+
+
+p <- ggplot(df, aes(category, cat_cnt, fill = gender)) +
+  geom_bar(stat = "identity", 
+           color = 'black', 
+           width = .65,
+           position = position_dodge(width = .75)) +
+  geom_text(label = paste('n =',df$cat_cnt), 
+            position = position_dodge(width = .75),
+            size = 3.5, fontface = 'bold',
+            hjust = -.05) +
+  labs(title = 'Exploring "Firsts" in African-American Achievements: 1738-2019',
+       subtitle = paste('Total = ', n_recs,
+                        ', Females =', n_female, ', Males =', n_male),
+       caption = 'Data: Wikipedia, 
+List of African-American inventors and scientists \n List of African-American firsts',
+       x = '',
+       y = 'Achievements By Category and Gender',
+       fill = '') + # used for legend name
+  scale_y_continuous(limits = c(0, n_max_y + 100), expand = c(0,0)) +
+  scale_fill_manual(values = vec_color) +
+  coord_flip() +
+  theme (
+    plot.title        = element_text(face = 'bold', size = 14),
+    plot.subtitle     = element_text(face = 'bold', size = 12),
+    plot.caption      = element_text(size = 8),
+    ##
+    panel.background  = element_blank(),
+    panel.grid        = element_blank(),
+    ##
+    legend.position    = c(0.9, 1.0), # top right
+    legend.direction   = 'horizontal',
+    ##
+    axis.title.x      = element_text(face = 'bold', size = 10),
+    axis.text.x       = element_blank(),
+    ##
+    axis.title.y      = element_blank(),
+    axis.text.y       = element_text(face = 'bold', size = 10),
+    ##
+    axis.ticks        = element_blank(),
+    plot.margin       = unit(c(.25, .25, .25, .25), "in")) +
+  guides(fill = guide_legend(reverse = TRUE))
+
+p
+```
+
+
+Saving Plot as png
+```{r}
+ggsave('African American Firsts.png',p,width =11,height = 8)
+```
+
